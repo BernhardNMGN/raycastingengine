@@ -77,7 +77,7 @@ public class HudRendererGeneral implements HudRenderer {
         number.setMaximumFractionDigits(1);
         String playerCoords = "Player Position: " + number.format(player.getPlayerCoords().getX()) + ", " + number.format(player.getPlayerCoords().getY());
         number.setMaximumFractionDigits(2);
-        String angle = "Player Angle: " + number.format(player.getAngle()) + "\u00B0";
+        String angle = "Player Angle: " + number.format(player.getPlayerDir()) + "\u00B0";
         drawTextBox(gc, playerCoords,  angle);
     }
 

@@ -9,7 +9,7 @@ public class PlayerStartFloor extends Segment{
     private Point2D playerStartCoords;
 
     public PlayerStartFloor(double segmentSize, double x, double y) {
-        super(segmentSize, x, y);
+        super(segmentSize, x, y, "default_floor");
         this.playerStartCoords = new Point2D(x + segmentSize/2., y + segmentSize/2.);
     }
 
@@ -21,11 +21,6 @@ public class PlayerStartFloor extends Segment{
     protected void setDefaultColors() {
         setFillColor(Color.LIGHTGRAY);
         setLineColor(Color.DARKGRAY);
-    }
-
-    @Override
-    protected void initializeTextureArray() {
-
     }
 
     public Point2D getPlayerStartCoords() {

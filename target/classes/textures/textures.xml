@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<textures>
+    <texture>
+        <id>default_wall</id>
+        <path>/textures/default/default_wall.png</path>
+    </texture>
+    <texture>
+        <id>bricks_grey</id>
+        <path>/textures/wall/bricks_grey.jpg</path>
+    </texture>
+    <texture>
+        <id>bricks_large</id>
+        <path>/textures/wall/bricks_large.png</path>
+    </texture>
+    <texture>
+        <id>bricks_small</id>
+        <path>/textures/wall/bricks_small.png</path>
+    </texture>
+    <texture>
+        <id>concrete_grey</id>
+        <path>/textures/floor/floor_concrete_grey.jpg</path>
+    </texture>
+    <texture>
+        <id>default_floor</id>
+        <path>/textures/default/default_floor.png</path>
+    </texture>
+</textures>

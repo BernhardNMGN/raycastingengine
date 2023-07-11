@@ -1,8 +1,10 @@
 package resources.map;
 
 import javafx.geometry.Point2D;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import resources.segments.Segment;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class GameMap {
 
@@ -11,7 +13,7 @@ public class GameMap {
     private List<List<Segment>> map;
     private Point2D playerStartCoords;
     private Point2D currentPlayerCoords;
-    private double currentPlayerAngle;
+    private Vector2D currentPlayerDir;
 
     private MapAssets assets;
 
@@ -21,14 +23,8 @@ public class GameMap {
         this.map = map;
         this.playerStartCoords = playerStartCoords;
         this.assets = new MapAssets();
-    }
 
-//    protected void initPlayerStartCoords(Point2D indexPoint) {
-//        int horSize = mapArray.get(0).size();
-//        int index = horSize * (int) indexPoint.getY() + (int) indexPoint.getX();
-//        List<Segment> startingSegment = map.get(index);
-//        playerStartCoords = startingSegment.getStartCoords().add(segmentSize/2., segmentSize/2.);
-//    }
+    }
 
     public List<List<Character>> getMapArray() {
         return mapArray;
@@ -54,15 +50,19 @@ public class GameMap {
         this.currentPlayerCoords = currentPlayerCoords;
     }
 
-    public double getCurrentPlayerAngle() {
-        return currentPlayerAngle;
+    public Vector2D getCurrentPlayerDir() {
+        return currentPlayerDir;
     }
 
-    public void setCurrentPlayerAngle(double currentPlayerAngle) {
-        this.currentPlayerAngle = currentPlayerAngle;
+    public void setCurrentPlayerDir(Vector2D currentPlayerDir) {
+        this.currentPlayerDir = currentPlayerDir;
     }
 
     public MapAssets getAssets() {
         return assets;
+    }
+
+    public Stream<Segment> streamSegments() {
+        return map.stream().flatMap(l -> l.stream());
     }
 }

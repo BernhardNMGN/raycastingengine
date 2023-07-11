@@ -5,6 +5,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import raycasting.RayCaster;
 import renderers.anglecalculators.AngleCalculator;
 import resources.map.GameMap;
@@ -15,13 +16,10 @@ import settings.Settings;
 import java.util.List;
 import java.util.Set;
 
-import static java.lang.Math.*;
-
 public class Player {
 
     private Point2D playerCoords;
-    private double angle;
-
+    private Vector2D playerDir;
     private double speed;
 
     private double playerSize;
@@ -45,7 +43,7 @@ public class Player {
     public Player(Point2D startingCoords, GameMap map) {
         this.playerCoords = startingCoords;
         this.primaryPlayerColor = Settings.PRIMARY_PLAYER_COLOR;
-        this.angle = 0.;
+        this.playerDir = Vector2D.of(0., -1.);
         this.map = map;
         this.segmentSize = map.getSegmentSize();
         this.playerSize = segmentSize/2.;
@@ -57,8 +55,7 @@ public class Player {
     }
 
     private void extractWallSegments() {
-        walls = map.getMap().stream()
-                .flatMap(line -> line.stream())
+        walls = map.streamSegments()
                     .filter(seg -> seg instanceof Wall)
                     .map(wall -> {
                         double x = wall.getStartCoords().getX();
@@ -94,8 +91,6 @@ public class Player {
 
     private Point2D findCollisionPoint(Point2D coords, double dX, double dY) {
         Circle playerBox = new Circle(coords.getX(), coords.getY(), playerSize/2.);
-//        return walls.stream()
-//                .anyMatch(rect -> playerCollidesWithSegment(rect, playerBox));
         int playerIndexX = (int) (playerCoords.getX() / segmentSize);
         int playerIndexY = (int) (playerCoords.getY() / segmentSize);
         int newPlayerIndexX = (int) (coords.getX() / segmentSize);
@@ -115,15 +110,17 @@ public class Player {
         return playerBox.intersects(wall);
     }
 
-    public Double updateAngle(Point2D cursor) {
-        angle = angleCalculator.calculateAngle(angle, cursor);
-        return angle;
+    public Vector2D updateAngleVector(Point2D cursor) {
+        this.playerDir = angleCalculator.calculateAngleVector(this.playerDir, cursor);
+        return playerDir;
     }
 
     public Point2D updateCoordinates(Set<KeyCode> currentKeysPressed) {
         double currentSpeed = currentKeysPressed.contains(KeyBindings.RUN) ? speed * Settings.PLAYER_RUN_FACTOR : speed;
-        double cos = currentSpeed * cos(toRadians(angle));
-        double sin = currentSpeed * sin(toRadians(angle));
+//        double cos = currentSpeed * cos(toRadians(angle));
+//        double sin = currentSpeed * sin(toRadians(angle));
+        double cos = currentSpeed * playerDir.getX();
+        double sin = currentSpeed * playerDir.getY();
         if(currentKeysPressed.contains(PlayerMovement.FORWARD.getKeyCode()))
             movePlayer(cos, sin);
         if(currentKeysPressed.contains(PlayerMovement.BACKWARD.getKeyCode()))
@@ -160,8 +157,8 @@ public class Player {
         return playerCoords;
     }
 
-    public double getAngle() {
-        return angle;
+    public Vector2D getPlayerDir() {
+        return playerDir;
     }
 
     public double getPlayerSize() {

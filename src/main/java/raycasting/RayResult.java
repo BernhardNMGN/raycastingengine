@@ -11,12 +11,20 @@ public class RayResult {
     private double relativeXPos;
     private double angle;
 
+    private int textureX;
+
     public RayResult(double distance, Segment segment, Point2D entrancePoint, double relativeXPos, double angle) {
         this.distance = distance;
         this.segment = segment;
         this.entrancePoint = entrancePoint;
         this.relativeXPos = relativeXPos;
         this.angle = angle;
+    }
+
+    public RayResult(double distance, Segment segment, int textureX) {
+        this.distance = distance;
+        this.segment = segment;
+        this.textureX = textureX;
     }
 
     public double getDistance() {
@@ -35,7 +43,7 @@ public class RayResult {
         return relativeXPos;
     }
 
-    public double getAngle() {
-        return angle;
+    public int getTextureX() {
+        return textureX;
     }
 }

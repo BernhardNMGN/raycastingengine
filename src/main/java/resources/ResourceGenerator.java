@@ -1,5 +1,6 @@
 package resources;
 
+import exceptions.TextureLoadingException;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.*;
@@ -12,9 +13,13 @@ import renderers.interfaces.*;
 import renderers.raycasting.*;
 import renderers.topdown.*;
 import resources.map.GameMap;
+import resources.textures.Texture;
+import resources.textures.TextureMap;
 import settings.Settings;
 
 import java.nio.IntBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ResourceGenerator {
 
@@ -41,8 +46,17 @@ public class ResourceGenerator {
         RayCaster rayCaster = new RayCaster(map);
         Robot mouseMover = new Robot();
         AngleCalculatorFirstPerson angleCalculator = new AngleCalculatorFirstPerson(mouseMover);
-        return new GameRendererRayCasting(new MapRendererRayCasting(map, pixelBuffer, imageView, rayCaster), new PlayerRendererRayCasting(), new CursorRendererRayCasting(), new HudRendererRayCasting(), angleCalculator);
+        TextureMap textureMap = generateTextureMap();
+        return new GameRendererRayCasting(new MapRendererRayCasting(map, pixelBuffer, imageView, rayCaster, textureMap), new PlayerRendererRayCasting(), new CursorRendererRayCasting(), new HudRendererRayCasting(), angleCalculator);
     }
+
+    private static TextureMap generateTextureMap() {
+        TextureMap map = new TextureMap(Settings.FILE_PATH_FOR_TEXTURES);
+        boolean loaded = map.loadTextures();
+        System.out.println("All textures loaded: " + loaded);
+        return map;
+    }
+
 
     /**
      * This is more dynamic (because we can declare default class in Settings), but method looks very

@@ -5,6 +5,7 @@ import resources.segments.DefaultFloor;
 import resources.segments.DefaultWall;
 import resources.segments.PlayerStartFloor;
 import resources.segments.Segment;
+import resources.segments.walls.GreyLargeBrickWall;
 import settings.Settings;
 
 import java.io.*;
@@ -117,6 +118,7 @@ public class MapBuilder {
             return switch (id) {
                 case '0',' ' -> new DefaultFloor(segmentSize, x, y);
                 case '1','x' -> new DefaultWall(segmentSize, x, y);
+                case 'g' -> new GreyLargeBrickWall(segmentSize, x, y);
                 case 'p' -> new PlayerStartFloor(segmentSize, x, y);
                 default -> new DefaultFloor(segmentSize, x, y);
             };
@@ -127,6 +129,7 @@ public class MapBuilder {
             return switch (id) {
                 case '0',' ' -> new DefaultFloor(segmentSize);
                 case '1','x' -> new DefaultWall(segmentSize);
+                case 'g' -> new GreyLargeBrickWall(segmentSize);
                 case 'p' -> new PlayerStartFloor(segmentSize);
                 default -> new DefaultFloor(segmentSize);
             };

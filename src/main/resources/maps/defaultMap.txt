@@ -1,17 +1,17 @@
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 x                 xxxxxxx              xxx           x           x
-x  p  xxxxxxxx          x              x x                x xx   x
-x     x      x    x  x  x                x           x    x  x   x
-x     xxx  xxx    x  x  x              x x                xx x   x
-x     x      x    x  x  x              x x           x    x  x   x
-x     x xxxx x    x  x  x              x x                x xx   x
-x     x  xx  x    x  x  x              x x           x    x  x   x
-x     x  xx  x    x  x  x              x x                xx x   x
-x     x xxxx x    x  x  x              x             x    x  x   x
-x     x      x    x  x  x              x x                x xx   x
-x     x xxxx x    x  x  x              x x           x    x  x   x
-x     x      x    x                    x x                xx x   x
-x        xx       xxxxxxx              xxx           x           x
+x  p  gggggggg          x              x x                x xx   x
+x     g      g    x  x  x                x           x    x  x   x
+x     ggg  ggg    x  x  x              x x                xx x   x
+x     g      g    x  x  x              x x           x    x  x   x
+x     g gggg g    x  x  x              x x                x xx   x
+x     g  gg  g    x  x  x              x x           x    x  x   x
+x     g  gg  g    x  x  x              x x                xx x   x
+x     g gggg g    x  x  x              x             x    x  x   x
+x     g      g    x  x  x              x x                x xx   x
+x     g gggg g    x  x  x              x x           x    x  x   x
+x     g      g    x                    x x                xx x   x
+x        gg       xxxxxxx              xxx           x           x
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 x                                                                x
 x                                                                x

@@ -1,223 +1,82 @@
 package raycasting;
 
 import javafx.geometry.Point2D;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import resources.Axis;
+import resources.Direction;
 import resources.map.GameMap;
 import resources.segments.Segment;
 import resources.segments.Wall;
 import settings.Settings;
-
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static java.lang.Math.*;
-import static renderers.utilities.GeometryCalculator.incrementAngle;
-
 public class RayCaster {
 
     private GameMap map;
-
-    private double leftAngleBound;
-    private double rightAngleBound;
-
-    private double segmentSize;
-    private final double offset;
-
-    private double maxDistance;
-    
     private List<List<Segment>> segments;
-    private Point2D zeroPoint;
 
     public RayCaster(GameMap map) {
         this.map = map;
-        this.segmentSize = map.getSegmentSize();
         this.segments = map.getMap();
-        this.maxDistance = Settings.MAX_DRAW_DISTANCE;
-        this.offset = segmentSize/1000.;
-        this.zeroPoint = new Point2D(0., 0.);
     }
 
     public RayResult[] run() {
-        double playerAngle = map.getCurrentPlayerAngle();
-        int fov = Settings.PLAYER_FOV;
-        calculateAngleBounds(playerAngle, fov);
-        int nrOfRays = Settings.HORIZONTAL_RESOLUTION;
-        double angleDelta = (double) fov / (double) nrOfRays;
+        double posX = map.getCurrentPlayerCoords().getX();
+        double posY = map.getCurrentPlayerCoords().getY();
+        Vector2D dir = map.getCurrentPlayerDir();
+        Vector2D plane = dir.orthogonal().multiply(Math.tan(Settings.PLAYER_FOV/2.));
+        int nrOfRays = (int) (Settings.HORIZONTAL_RESOLUTION * Settings.IMAGE_QUALITY.getScalingFactor());
         RayResult[] rayResults = new RayResult[nrOfRays];
-        Point2D playerCoords = map.getCurrentPlayerCoords();
-        double angle = leftAngleBound;
-        for (int i = 0; i < nrOfRays; i++) {
-            rayResults[i] = castRay(playerCoords, angle, maxDistance);
-            angle = incrementAngle(angle, angleDelta);
+        for(int x = 0; x < nrOfRays; x++) {
+            double cameraX = 2. * (((double) x) / ((double) nrOfRays)) - 1.;
+            double rayDirX = dir.getX() + plane.getX() * cameraX;
+            double rayDirY = dir.getY() + plane.getY() * cameraX;
+            rayResults[x] = castRay(posX, posY, rayDirX, rayDirY);
         }
         return rayResults;
     }
 
-    public RayResult[] runAlt() {
-        double playerAngle = map.getCurrentPlayerAngle();
-        int fov = Settings.PLAYER_FOV;
-        calculateAngleBounds(playerAngle, fov);
-        int nrOfRays = Settings.HORIZONTAL_RESOLUTION;
-        double angleDelta = (double) fov / (double) nrOfRays;
-        Map<Double,RayResult> rayResults = new HashMap<>();
-        Point2D playerCoords = map.getCurrentPlayerCoords();
-        double angle = leftAngleBound;
-        while (angle < rightAngleBound) {
-            RayResult nextResult = castRay(playerCoords, angle, maxDistance);
-            while(!(nextResult.getSegment() instanceof Wall)) {
-                angle = incrementAngle(angle, angleDelta);
-                nextResult = castRay(playerCoords, angle, maxDistance);
-            }
+    public RayResult castRay(double posX, double posY, double rayDirX, double rayDirY) {
+        int[] mapCoords = {(int) posX, (int) posY};
+        double[] deltaDistances = {(rayDirX == 0.) ? 1e30 : Math.abs(1. / rayDirX), (rayDirY == 0.) ? 1e30 : Math.abs(1. / rayDirY)};
+        double[] sideDistances = {(rayDirX < 0 ? posX - mapCoords[0] : mapCoords[0] + 1. - posX) * deltaDistances[0], (rayDirY < 0 ? posY - mapCoords[1] : mapCoords[1] + 1. - posY) * deltaDistances[1]};
+        int[] steps = {(int) Math.signum(rayDirX), (int) Math.signum(rayDirY)};
 
+        boolean hit = false; //was there a wall hit?
+        int i = 0; //was the wall hit at a side or at top/bottom and do we thus update X or Y?
+        Segment nextSeg = segments.get(mapCoords[1]).get(mapCoords[0]);
+
+        while(!hit) {
+            i = sideDistances[0] < sideDistances[1] ? 0 : 1; //jump to next map square, either in x-direction, or in y-direction
+            sideDistances[i] += deltaDistances[i];
+            mapCoords[i] += steps[i];
+            nextSeg = segments.get(mapCoords[1]).get(mapCoords[0]);//Check if ray has hit a wall
+            if (nextSeg instanceof Wall)
+                hit = true;
         }
-        return null;
+        //todo: fix!!!
+        double distance = sideDistances[i] - deltaDistances[i];
+//        Direction wallSide = computeWallDirection(i, rayDirX, rayDirY);
+        double wallX = computeWallXCoordinate(i, posX, posY, distance, rayDirX, rayDirY); //relative x-coordinate of where the wall was hit
+        int textureX = computeTextureXIndex(i, wallX, distance, rayDirX, rayDirY); //wallX scaled & transformed to get x-coordinate for texture
+        return new RayResult(distance, nextSeg, textureX);
     }
 
-    public RayResult castRayAlt(Point2D player, double angle) {
-
-        Segment playerSegment = getSegment(player.getX(), player.getY());
-        double xSeg = playerSegment.getStartCoords().getX();
-        double ySeg = playerSegment.getStartCoords().getY();
-
-        double sinAngle = Math.sin(angle);
-        double cosAngle = Math.cos(angle);
-
-        double dirX = segmentSize;
-        double xVert;
-        // verticals
-        if(cosAngle > 0) {
-            xVert = xSeg + segmentSize;
-        }
-        else {
-            dirX *= -1.;
-            xVert = xSeg - offset;
-        }
-        double depthVert = (xVert - player.getX()) / cosAngle;
-        double yVert = player.getY() + depthVert * sinAngle;
-        double deltaDepth = dirX / cosAngle;
-        double dirY = deltaDepth * sinAngle;
-        return null;
+    private int computeTextureXIndex(int side, double wallX, double distance, double rayDirX, double rayDirY) {
+        int texWidth = Settings.TEXTURE_SIZE;
+        int texX = (int) (wallX * (double) texWidth);
+        if((side == 0 && rayDirX > 0) || (side == 1 && rayDirY < 0))
+            texX = texWidth - texX - 1;
+        return texX;
     }
 
-    public RayResult castRay(Point2D player, double angle, double maximumDistance) {
-        double x = player.getX();
-        double y = player.getY();
-        int rayDirX = getDirX(angle);
-        int rayDirY = getDirY(angle);
-        Point2D horVector = findBoundary(x, angle, rayDirX, Axis.HORIZONTAL);
-        Point2D vertVector = findBoundary(y, angle, rayDirY, Axis.VERTICAL);
-        Point2D horPos = player.add(horVector);
-        Point2D vertPos = player.add(vertVector);
-
-        horVector = scaleVector(horVector, Axis.HORIZONTAL, rayDirX);
-        double horVectorLength = zeroPoint.distance(horVector);
-        vertVector = scaleVector(vertVector, Axis.VERTICAL, rayDirY);
-        double vertVectorLength = zeroPoint.distance(vertVector);
-
-        double horDistance = player.distance(horPos);
-        double vertDistance = player.distance(vertPos);
-        Point2D nextPoint = null;
-        double distance = 0.;
-        Segment nextSegment = getSegment(x, y, rayDirX, rayDirY);
-        Axis currentAxis = null;
-        while(!(nextSegment instanceof Wall) && distance <= maximumDistance) {
-            if (horDistance < vertDistance) {
-                nextPoint = horPos;
-                horPos = horPos.add(horVector);
-                distance = horDistance;
-                horDistance += horVectorLength;
-                currentAxis = Axis.HORIZONTAL;
-            } else {
-                nextPoint = vertPos;
-                vertPos = vertPos.add(vertVector);
-                distance = vertDistance;
-                vertDistance += vertVectorLength;
-                currentAxis = Axis.VERTICAL;
-            }
-            nextSegment = getSegment(nextPoint.getX(), nextPoint.getY(), rayDirX, rayDirY);
-        }
-        double relativeXPos = getRelativeXPos(rayDirX, rayDirY, currentAxis, nextPoint);
-        return new RayResult(distance, nextSegment, nextPoint, relativeXPos, angle);
+    private Direction computeWallDirection(int i, double rayDirX, double rayDirY) {
+        Axis axis = Axis.values()[i];
+        if(axis.equals(Axis.HORIZONTAL)) return rayDirX > 0 ? Direction.LEFT : Direction.RIGHT;
+        else return rayDirY < 0 ? Direction.UP : Direction.DOWN;
     }
 
-    private double getRelativeXPos(int rayDirX, int rayDirY, Axis axis, Point2D point) {
-        double result;
-        if(axis.equals(Axis.HORIZONTAL)) {
-            result = (point.getY() % segmentSize) * segmentSize;
-            if(rayDirX < 0)
-                result = segmentSize - result;
-        } else {
-            result = (point.getX() % segmentSize) * segmentSize;
-            if(rayDirY > 0)
-                result = segmentSize - result;
-        }
-        return result;
-    }
-
-    private Point2D scaleVector(Point2D vector, Axis searchDir, int rayDir) {
-        double ratio = (rayDir * segmentSize) / (searchDir.equals(Axis.HORIZONTAL) ? vector.getX() : vector.getY());
-        return vector.multiply(ratio);
-    }
-
-    private Point2D findBoundary(double coordinate, double angle, int rayDir, Axis searchDir) {
-        double distanceToBoundary = findDeltaFromBoundary(rayDir, coordinate);
-        if(searchDir.equals(Axis.HORIZONTAL)) {
-            double delta = distanceToBoundary * tan(toRadians(angle));
-            return new Point2D(distanceToBoundary, delta);
-        }
-        else {
-            double vertAngle = incrementAngle(360., -incrementAngle(90., -(360. - angle)));
-            double delta = distanceToBoundary * tan(toRadians(vertAngle));
-            return new Point2D(delta, distanceToBoundary);
-        }
-    }
-
-    private double findDeltaFromBoundary(int direction, double pos) {
-        double newPos = direction > 0 ? segmentSize - (pos % segmentSize) : -(pos % segmentSize);
-        return newPos == 0 ? segmentSize : newPos;
-    }
-
-    private void printData (double x, double y, double angle, double rayDeltaX, double rayDeltaY, double rayDeltaYforHorizontalSearch, double rayDeltaXforVerticalSearch) {
-        System.out.println("x: " + x + ", y: " + y + ", angle: " + angle);
-        System.out.println("rayDeltaX : " + rayDeltaX + ", rayDeltaY: " + rayDeltaY);
-        System.out.println("deltaYhorSearch : " + rayDeltaYforHorizontalSearch + ", deltaXvertSearch: " + rayDeltaXforVerticalSearch);
-        System.out.println("-------------------------------------------------------------------------------------");
-    }
-
-    private Segment getSegment(double x, double y, int rayDirX, int rayDirY) {
-        int xInd = (int) (x/segmentSize + offset*rayDirX);
-        int yInd = (int) (y/segmentSize + offset*rayDirY);
-        if(xInd < 0 || xInd >= segments.get(0).size() || yInd < 0 || yInd >= segments.size())
-            System.out.println("debug: index for segment out of bounds");
-        return segments.get(yInd).get(xInd);
-    }
-
-    private Segment getSegment(double x, double y) {
-        int xInd = (int) (x/segmentSize);
-        int yInd = (int) (y/segmentSize);
-        return segments.get(yInd).get(xInd);
-    }
-
-    private int getDirX(double angle) {
-        if(angle < 90. || angle > 270.)
-            return 1;
-        else if(angle > 90. && angle < 270.)
-            return -1;
-        else return 0;
-    }
-
-    private int getDirY(double angle) {
-        if(angle > 0. && angle < 180.)
-            return 1;
-        else if(angle > 180.)
-            return -1;
-        else return 0;
-    }
-
-    private void calculateAngleBounds(double playerAngle, int fov) {
-        double halfFov = ((double) fov)/2.;
-        this.leftAngleBound = incrementAngle(playerAngle, -halfFov);
-        this.rightAngleBound = incrementAngle(playerAngle, halfFov);
+    private double computeWallXCoordinate(int side, double posX, double posY, double distance, double rayDirX, double rayDirY) {
+        double wallX = side == 0 ? posY + distance * rayDirY : posX + distance * rayDirX;
+        return wallX - Math.floor(wallX);
     }
 }

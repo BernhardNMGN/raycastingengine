@@ -1,12 +1,15 @@
 package renderers.utilities;
 
 import javafx.geometry.Point2D;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import raycasting.RayResult;
 import resources.Direction;
 import resources.segments.DefaultFloor;
 import resources.segments.DefaultWall;
 import resources.segments.PlayerStartFloor;
 import resources.segments.Segment;
+
+import java.util.Vector;
 
 import static java.lang.Math.*;
 import static java.lang.Math.toRadians;
@@ -18,6 +21,12 @@ public class GeometryCalculator {
         double x = radius * cos(toRadians(angle)) + origin.getX();
         double y = radius * sin(toRadians(angle)) + origin.getY();
         return new Point2D(x, y);
+    }
+
+    public static Point2D calculatePointOnCircle(Point2D origin, Vector2D angle, double radius) {
+        angle = angle.multiply(radius);
+        Point2D dir = new Point2D(angle.getX(), angle.getY());
+        return origin.add(dir);
     }
 
     public static double calculateAngle(double originalAngle, double difference) {
@@ -50,5 +59,20 @@ public class GeometryCalculator {
             return Direction.UP;
         }
         else return Direction.DOWN;
+    }
+
+    public static Point2D angleToVector(Point2D source, double angle) {
+        return null;
+    }
+
+    public static double length(Vector2D vector) {
+        double x = vector.getX();
+        double y = vector.getY();
+        return Math.sqrt(x*x + y*y);
+    }
+    public static Vector2D rotateVector(Vector2D vector, double angle) {
+        double rx = (vector.getX() * Math.cos(angle)) - (vector.getY() * Math.sin(angle));
+        double ry = (vector.getX() * Math.sin(angle)) + (vector.getY() * Math.cos(angle));
+        return Vector2D.of(rx, ry);
     }
 }

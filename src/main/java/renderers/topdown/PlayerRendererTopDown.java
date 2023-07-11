@@ -3,7 +3,7 @@ package renderers.topdown;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import renderers.utilities.GraphicRendererContainer;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import renderers.utilities.RenderType;
 import renderers.interfaces.PlayerRenderer;
 import resources.Player;
@@ -23,14 +23,14 @@ public class PlayerRendererTopDown implements PlayerRenderer{
 
     @Override
     public void draw(Player player) {
-        double playerAngle = player.getAngle();
+        Vector2D playerAngle = player.getPlayerDir();
         double playerSize = player.getPlayerSize();
         Color primaryPlayerColor = player.getPrimaryPlayerColor();
         double radius = playerSize/2.;
 
-        double leftAngle = calculateAngle(playerAngle, -90.);
+        Vector2D leftAngle = rotateVector(playerAngle, -90.);
         Point2D leftPoint = calculatePointOnCircle(playerCoords, leftAngle, radius);
-        double rightAngle = calculateAngle(playerAngle, 90.);
+        Vector2D rightAngle = rotateVector(playerAngle, 90.);
         Point2D rightPoint = calculatePointOnCircle(playerCoords, rightAngle, radius);
 
         Point2D endPoint = calculatePointOnCircle(playerCoords, playerAngle, playerSize);

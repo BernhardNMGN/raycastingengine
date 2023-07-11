@@ -44,12 +44,8 @@ public class Game {
     private Scene scene;
     private int currentRendererIndex;
     private GameRenderer[] availableRenderers = new GameRenderer[values().length];
-
-
-
     public Game(GameMap map, Scene scene, GameRenderer... renderers){
         this.frameRate = Settings.FRAMERATE;
-//        this.grContainer = grContainer;
         this.scene = scene;
         setupInputListeners();
         setupRenderers(renderers);
@@ -79,20 +75,13 @@ public class Game {
 
     private void setupGameLoop(Integer frameRate) {
         this.eventHandler = actionEvent -> {
-            long start = System.currentTimeMillis();
-            map.setCurrentPlayerAngle(player.updateAngle(cursor));
-            long next = System.currentTimeMillis();
-            long angleCalcTime = (next - start);
-            start = next;
+            double startTime = System.currentTimeMillis();
+//            map.setCurrentPlayerAngle(player.updateAngle(cursor));
+            map.setCurrentPlayerDir(player.updateAngleVector(cursor));
             map.setCurrentPlayerCoords(player.updateCoordinates(currentKeysPressed));
-            next = System.currentTimeMillis();
-            long playerMoveTime = (next - start);
-            start = next;
             drawUsingCurrentRenderer();
-            next = System.currentTimeMillis();
-            long renderTime = (next - start);
-            start = next;
-            System.out.println("angle calc time: " + angleCalcTime + ", player move time: " + playerMoveTime + ", render time: " + renderTime + ", total frame rendered in : " + (angleCalcTime + playerMoveTime + renderTime) + " milliseconds");
+//            System.out.println("Frame rendered in : " + (System.currentTimeMillis() - startTime) + " milliseconds");
+//            System.out.println("angle calc time: " + angleCalcTime + ", player move time: " + playerMoveTime + ", render time: " + renderTime + ", total frame rendered in : " + (angleCalcTime + playerMoveTime + renderTime) + " milliseconds");
         };
         this.keyFrame = new KeyFrame(Duration.millis(1000/ frameRate), eventHandler);
         gameLoop = new Timeline(keyFrame);

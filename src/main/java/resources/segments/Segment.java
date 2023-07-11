@@ -4,8 +4,6 @@ import javafx.geometry.BoundingBox;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.ImagePattern;
-import settings.Settings;
 
 public abstract class Segment {
 
@@ -17,8 +15,7 @@ public abstract class Segment {
     private double segmentSize;
     private BoundingBox outerBoundingBox;
     private BoundingBox innerBoundingBox;
-
-    private ImagePattern texture; // todo: implement
+    protected String textureId;
 
     protected int[][] textureArray;
     protected Color[] textureArrayColors;
@@ -30,7 +27,10 @@ public abstract class Segment {
         this.innerBoundingBox = new BoundingBox(x+lineThickness, y+lineThickness, segmentSize - (2 * lineThickness), segmentSize - (2 * lineThickness));
         setDefaultColors();
         this.lineThickness = segmentSize/20.;
-        initializeTextureArray();
+    }
+    protected Segment(double segmentSize, double x, double y, String textureId) {
+        this(segmentSize, x, y);
+        this.textureId = textureId;
     }
 
     protected Segment(double segmentSize) {
@@ -38,8 +38,6 @@ public abstract class Segment {
     }
 
     protected abstract void setDefaultColors();
-
-    protected abstract void initializeTextureArray();
 
     public void draw(GraphicsContext gc, double x, double y) {
         gc.setStroke(lineColor);
@@ -72,10 +70,6 @@ public abstract class Segment {
         return segmentSize;
     }
 
-    public void setSegmentSize(double segmentSize) {
-        this.segmentSize = segmentSize;
-    }
-
     public Point2D getStartCoords() {
         return startCoords;
     }
@@ -84,20 +78,15 @@ public abstract class Segment {
         return outerBoundingBox;
     }
 
-    public Color getColorByIndex(Point2D entrancePoint) {
-        if(texture == null) {
-            if(innerBoundingBox.contains(entrancePoint))
-                return fillColor;
-            else return lineColor;
-        }
-        else return fillColor; //todo: implement getting argb from texture;
-    }
-
     public int[][] getTextureArray() {
         return textureArray;
     }
 
     public Color[] getTextureArrayColors() {
         return textureArrayColors;
+    }
+
+    public String getTextureId() {
+        return textureId;
     }
 }

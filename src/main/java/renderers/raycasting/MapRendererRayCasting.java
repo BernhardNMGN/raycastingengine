@@ -4,11 +4,15 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelBuffer;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import raycasting.RayCaster;
 import raycasting.RayResult;
 import renderers.interfaces.MapRenderer;
+import renderers.utilities.ImageLoader;
 import renderers.utilities.RenderType;
 import resources.map.GameMap;
+import resources.textures.TextureMap;
 import settings.Settings;
 
 import java.nio.IntBuffer;
@@ -17,11 +21,16 @@ import java.util.stream.IntStream;
 
 public class MapRendererRayCasting implements MapRenderer {
 
+    private final Logger log = LoggerFactory.getLogger(this.getClass().getSimpleName());
+
     private GameMap map;
     private RayCaster rayCaster;
     private PixelBuffer<IntBuffer> pixelBuffer;
     private WritableImage image;
     private ImageView imageView;
+
+
+    private ImageLoader imageLoader;
 
     private int ceilingColor;
     private int floorColor;
@@ -31,12 +40,14 @@ public class MapRendererRayCasting implements MapRenderer {
     private int[] noSegmentArray;
     private HashMap<Color, Integer> colorMap;
 
+    private TextureMap textureMap;
+
     private int width;
     private int height;
 
-    private double screenDistance;
+    private int screenDistance;
 
-    public MapRendererRayCasting(GameMap map, PixelBuffer pixelBuffer, ImageView imageView, RayCaster rayCaster) {
+    public MapRendererRayCasting(GameMap map, PixelBuffer pixelBuffer, ImageView imageView, RayCaster rayCaster, TextureMap textureMap) {
         this.map = map;
         this.rayCaster = rayCaster;
         this.pixelBuffer = pixelBuffer;
@@ -52,7 +63,9 @@ public class MapRendererRayCasting implements MapRenderer {
         this.height = pixelBuffer.getHeight();
         this.width = pixelBuffer.getWidth();
         this.noSegmentArray = generateNoSegmentArray();
-        this.screenDistance = Settings.SCREEN_DISTANCE;
+        this.screenDistance = Settings.SCREEN_DISTANCE.intValue();
+
+        this.textureMap = textureMap;
     }
 
     private int colorToARGB(Color color, boolean applyShading) {
@@ -97,13 +110,22 @@ public class MapRendererRayCasting implements MapRenderer {
         RayResult[] rayResults = rayCaster.run();
         IntBuffer intBuffer = pixelBuffer.getBuffer();
         int[] pixels = intBuffer.array();
-        IntStream.range(0, rayResults.length)
+        IntStream.range(0, Settings.HORIZONTAL_RESOLUTION)
                 .forEach(i -> {
-                    fillBufferPerColumn(pixels, rayResults[i], i);
+                    int index = (int) (i * Settings.IMAGE_QUALITY.getScalingFactor());
+//                    fillBufferPerColumn(pixels, rayResults[index], i);
+                    RayResult rayResult = rayResults[index];
+                    int[] colors = textureMap.getColorColumn(rayResult.getSegment().getTextureId(), rayResult.getTextureX());
+                    fillBufferPerColumnTextured(pixels, rayResult.getDistance(), colors, i);
                 });
         pixelBuffer.updateBuffer(b -> null);
         imageView.setImage(image);
+    }
 
+    private long computeNewLogEntry(String action, long previousTime) {
+        long timeElapsed = System.currentTimeMillis() - previousTime;
+        log.info("Action: " + action + " executed in " + timeElapsed + " ms.");
+        return System.currentTimeMillis();
     }
 
     private void fillBufferPerColumn(int[] pixels, RayResult rayResult, int column) {
@@ -111,37 +133,60 @@ public class MapRendererRayCasting implements MapRenderer {
         if(rayDist >= maxDist)
             fillBufferPerColumnFromArray(pixels, 0 , column, this.noSegmentArray);
         else {
-            rayDist *= Math.cos(Math.toRadians(map.getCurrentPlayerAngle() - rayResult.getAngle())); // remove fishbowl effect (but add reverse fishbowl effect?)
             int segmentColor = colorToARGB(rayResult.getSegment().getFillColor(), true, rayDist);
-            int segmentHeight = rayDist <= minDist ? height : computeSegHeight(rayDist);
-            if(segmentHeight % 2 != 0)
-                segmentHeight++;
-            int ceilingHeight = (height - segmentHeight)/2;
-            if(segmentHeight > height || ceilingHeight > height)
+            int virtualSegHeight = (int) (screenDistance/(rayDist + .00001));
+            int segHeight = rayDist <= minDist ? screenDistance : Math.min(height,virtualSegHeight);
+            if(segHeight % 2 != 0)
+                segHeight++;
+            int ceilingHeight = (height - segHeight)/2;
+
+            int segStart = (height - segHeight)/2;
+            int segEnd = segStart + segHeight;
+
+            if(segHeight > height || ceilingHeight > height)
                 System.out.println("debug: height incorrect");
-            int start = 0;
-            start = fillBufferPerColumn(pixels, start,  ceilingHeight, column, ceilingColor); // fill buffer with ceiling color
-            start = fillBufferPerColumn(pixels, start, segmentHeight, column, segmentColor); // fill buffer with segment
-            fillBufferPerColumn(pixels, start, ceilingHeight, column, floorColor); // fill buffer with floor color
+            partiallyFillBufferPerColumn(pixels, 0,  segStart, column, ceilingColor); // fill buffer with ceiling color
+            partiallyFillBufferPerColumn(pixels, segStart, segEnd, column, segmentColor); // fill buffer with segment
+            partiallyFillBufferPerColumn(pixels, segEnd, height, column, floorColor); // fill buffer with floor color
         }
     }
 
-    private void fillBufferPerColumnTextured(int[] pixels, RayResult rayResult, int column) {
-        double rayDist = rayResult.getDistance();
+    private void fillBufferPerColumnTextured(int[] pixels, double rayDist, int[] texColors, int column) {
+        int textureSize = texColors.length;
         if(rayDist >= maxDist)
             fillBufferPerColumnFromArray(pixels, 0 , column, this.noSegmentArray);
         else {
-            int segmentHeight = rayDist <= minDist ? height : computeSegHeight(rayDist);
-            if(segmentHeight % 2 != 0)
-                segmentHeight++;
-            int ceilingHeight = (height - segmentHeight)/2;
-            int[] texturedSegment = createArrayFromTexture(rayResult, segmentHeight);
-            if(segmentHeight > height || ceilingHeight > height)
-                System.out.println("debug: height incorrect");
-            int start = 0;
-            start = fillBufferPerColumn(pixels, start,  ceilingHeight, column, ceilingColor); // fill buffer with ceiling color
-            start = fillBufferPerColumnFromArray(pixels, start, column, texturedSegment); // fill buffer with segment
-            fillBufferPerColumn(pixels, start, ceilingHeight, column, floorColor); // fill buffer with floor color
+            int virtualSegHeight = (int) (screenDistance/(rayDist + .00001));
+            int segHeight = rayDist <= minDist ? screenDistance : Math.min(height,virtualSegHeight);
+            int segStart = (height - segHeight)/2;
+            int segEnd = segStart + segHeight;
+            double stepSize =  ((double)textureSize/(double)virtualSegHeight);
+            double texStart = (segStart - height/2. + virtualSegHeight/2.) * stepSize;
+//            if(segHeight >= height && texStart > 479.9 && texStart < 480.1)
+//            if(segHeight >= height)
+//                System.out.println("debug");
+            partiallyFillBufferPerColumn(pixels, 0,  segStart, column, ceilingColor); // fill buffer with ceiling color
+            partiallyFillBufferPerColumnTextured(pixels, segStart, segEnd, column, texColors, stepSize, texStart);
+            partiallyFillBufferPerColumn(pixels, segEnd, height, column, floorColor); // fill buffer with floor color
+        }
+    }
+
+    private void partiallyFillBufferPerColumnTextured(int[] pixels, int start, int end, int column, int[] colors, double step, double texStart) {
+        int texHeight = colors.length;
+        for(int i = start; i < end; i++) {
+            int bufferIndex = i * width + column; //transform index to position in pixelBuffer array
+            int texIndex = (int)texStart & (texHeight - 1);
+            texStart += step;
+//            if(texIndex == 0 || texIndex == colors.length - 1)
+//                System.out.println("debug");
+            pixels[bufferIndex] = colors[texIndex];
+        }
+    }
+
+    private void partiallyFillBufferPerColumn(int[] pixels, int start, int end, int column, int color) {
+        for(int i = start; i < end; i++) {
+            int bufferIndex = i * width + column; //transform index to position in pixelBuffer array
+            pixels[bufferIndex] = color;
         }
     }
 
@@ -164,17 +209,6 @@ public class MapRendererRayCasting implements MapRenderer {
         return (int) (relativePos * (double) length);
     }
 
-    private int fillBufferPerColumn(int[] pixels, int start, int length, int column, int color) {
-        int end = start + length;
-        for(int i = start; i < end; i++) {
-            int index = i * width + column;
-            if(index >= pixels.length)
-                System.out.println("debug: index out of bounds");
-            pixels[index] = color;
-        }
-        return end;
-    }
-
     private int fillBufferPerColumnFromArray(int[] pixels, int start, int column, int[] source) {
         int end = start + source.length;
         for(int i = start; i < end; i++) {
@@ -184,17 +218,6 @@ public class MapRendererRayCasting implements MapRenderer {
             pixels[index] = source[i - start];
         }
         return end;
-    }
-
-    private int computeSegHeight(Double rayDist) {
-        if(rayDist >= maxDist)
-            return 0;
-        else if(rayDist <= minDist)
-            return height;
-        int result = (int) Math.min(height, (screenDistance/(rayDist + .00001)));
-        if(result < 0 || result > height)
-            System.out.println("debug: segment height calculation incorrect");
-        return result;
     }
 
     @Override

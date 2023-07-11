@@ -6,7 +6,7 @@ public class DefaultFloor extends Segment{
 
 
     public DefaultFloor(double segmentSize, double x, double y) {
-        super(segmentSize, x, y);
+        super(segmentSize, x, y, "default_floor");
     }
 
     public DefaultFloor(double segmentSize) {
@@ -17,10 +17,5 @@ public class DefaultFloor extends Segment{
     protected void setDefaultColors() {
         setFillColor(Color.LIGHTGRAY);
         setLineColor(Color.DARKGRAY);
-    }
-
-    @Override
-    protected void initializeTextureArray() {
-
     }
 }

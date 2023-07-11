@@ -1,6 +1,7 @@
 package renderers.anglecalculators;
 
 import javafx.geometry.Point2D;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import settings.Settings;
 
 import static java.lang.Math.atan2;
@@ -30,5 +31,10 @@ public class AngleCalculatorTopDown implements AngleCalculator {
         if(angle < 0)
             angle += 360.;
         return angle;
+    }
+
+    @Override
+    public Vector2D calculateAngleVector(Vector2D currentAngle, Point2D cursor) {
+        return null;
     }
 }

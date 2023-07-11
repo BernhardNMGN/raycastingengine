@@ -2,9 +2,11 @@ package renderers.anglecalculators;
 
 import javafx.geometry.Point2D;
 import javafx.scene.robot.Robot;
+import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import settings.Settings;
 
 import static renderers.utilities.GeometryCalculator.incrementAngle;
+import static renderers.utilities.GeometryCalculator.rotateVector;
 
 public class AngleCalculatorFirstPerson implements AngleCalculator{
 
@@ -33,7 +35,21 @@ public class AngleCalculatorFirstPerson implements AngleCalculator{
         double newAngle = incrementAngle(currentAngle, angleDelta);
         reCenterCursor(cursorX, cursor.getY()); //todo: uncomment!!!!!!!!!
         return newAngle;
+    }
 
+    @Override
+    public Vector2D calculateAngleVector(Vector2D currentAngle, Point2D cursor) {
+        if(!isOnScreen(cursor))
+            return currentAngle;
+        double cursorX = cursor.getX();
+        if(cursorX == centerX)
+            return currentAngle;
+        double angleDelta = maxTurningSpeed * (cursorX - centerX);
+        if(angleDelta > 1000.)
+            System.out.println("debug");
+        Vector2D newAngle = rotateVector(currentAngle, angleDelta);
+        reCenterCursor(cursorX, cursor.getY());
+        return newAngle;
     }
 
     private boolean isOnScreen(Point2D cursor) {
