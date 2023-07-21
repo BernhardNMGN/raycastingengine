@@ -1,15 +1,17 @@
 package renderers.utilities;
 
-import exceptions.TextureLoadingException;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
-import settings.Settings;
-
+import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,41 +29,16 @@ public class ImageLoader {
         return nodeList;
     }
 
-    public static Image loadImage(String path) throws Exception {
-        Image image = new Image(path, Settings.TEXTURE_SIZE, Settings.TEXTURE_SIZE, false, true);
-        while(image.getProgress() < 1.)
-            System.out.println("loading image..."); //todo: make proper loading functionality
-        if(image.isError())
-            throw image.getException();
-        return image;
+    public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) throws IOException {
+        Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT);
+        BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+        return outputImage;
     }
 
-    public static int colorToARGB(Color color) {
-        return colorToARGB(color, false, 0.);
-    }
-    public static int colorToARGB(Color color, boolean applyShading, double rayDist) {
-        if(applyShading) {
-            int alpha = toInt(color.getOpacity());
-            double shadingFactor = 1. + Math.pow(rayDist, 2.) * .01;
-            int red = toInt(color.getRed()/shadingFactor);
-            int green = toInt(color.getGreen()/shadingFactor);
-            int blue = toInt(color.getBlue()/shadingFactor);
-            int result = (alpha << 24) + (red << 16) + (green << 8) + blue;
-            return result;
-        }
-        else if (colorMap.containsKey(color))
-            return colorMap.get(color);
-        else {
-            int alpha = toInt(color.getOpacity());
-            int red = toInt(color.getRed());
-            int green = toInt(color.getGreen());
-            int blue = toInt(color.getBlue());
-            int result = (alpha << 24) + (red << 16) + (green << 8) + blue;
-            colorMap.put(color, result);
-            return result;
-        }
-    }
-    private static int toInt(double value) {
-        return (int)(value * 255.);
+    public static BufferedImage loadImage(String path) throws Exception {
+        URL resource = ImageLoader.class.getResource(path);
+        File imageFile = Paths.get(resource.toURI()).toFile();
+        return ImageIO.read(imageFile);
     }
 }

@@ -7,15 +7,25 @@ import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelBuffer;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import raycasting.RayCaster;
+import raycasting.RayResult;
 import renderers.anglecalculators.AngleCalculator;
 import renderers.interfaces.GameRenderer;
+import renderers.raycasting.GameRendererRayCasting;
+import renderers.topdown.GameRendererTopDown;
 import resources.Player;
 import resources.map.GameMap;
 import settings.Settings;
 
 import java.awt.*;
+import java.nio.IntBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,7 +38,11 @@ public class Game {
     private GameMap map;
     private Player player;
     private Point2D cursor;
+
+    private RayCaster rayCaster;
     private Set<KeyCode> currentKeysPressed = new HashSet<>();
+
+    private RayResult[] rayResults;
     /**
      * Loop Objects
      */
@@ -39,62 +53,95 @@ public class Game {
 
     /**
      * Available & current renderers
-//     */
-//    private GraphicRendererContainer grContainer;
+     */
     private Scene scene;
-    private int currentRendererIndex;
-    private GameRenderer[] availableRenderers = new GameRenderer[values().length];
-    public Game(GameMap map, Scene scene, GameRenderer... renderers){
+    private GameRenderer currentGameRenderer;
+    private GameRendererRayCasting gameRendererRayCasting;
+    private GameRendererTopDown gameRendererTopDown;
+    private PixelBuffer<IntBuffer> pixelBuffer;
+    private WritableImage image;
+    private ImageView imageView;
+
+    private long startFrame;
+    private long frameTime;
+
+    public Game(RayCaster rayCaster, PixelBuffer<IntBuffer> pixelBuffer, ImageView imageView, GameMap map, Scene scene, GameRendererRayCasting gameRendererRayCasting, GameRendererTopDown gameRendererTopDown){
         this.frameRate = Settings.FRAMERATE;
         this.scene = scene;
+        this.rayCaster = rayCaster;
+        this.pixelBuffer = pixelBuffer;
+        this.image = new WritableImage(pixelBuffer);
+        this.imageView = imageView;
         setupInputListeners();
-        setupRenderers(renderers);
-        setupGameLoop(frameRate);
         this.map = map;
+        setupRenderers(gameRendererRayCasting, gameRendererTopDown);
         initializeCursorAndPlayer();
+        setupGameLoop(frameRate);
+        setupInputListeners();
+        this.startFrame = System.currentTimeMillis();
+        this.frameTime = System.currentTimeMillis() - startFrame;
     }
 
-    private void setupRenderers(GameRenderer[] renderers) {
-        for(GameRenderer renderer : renderers) {
-            availableRenderers[renderer.getRenderType().ordinal()] = renderer;
-        }
-        int index = 0;
-        while (availableRenderers[index] == null)
-            index++;
-        this.currentRendererIndex = index;
+    public Game(PixelBuffer<IntBuffer> pixelBuffer, ImageView imageView, GameMap map, Scene scene, GameRendererTopDown gameRendererTopDown) {
+        this(null, pixelBuffer, imageView, map, scene, null, gameRendererTopDown);
+    }
+
+    public Game(RayCaster rayCaster, PixelBuffer pixelBuffer, ImageView imageView, GameMap map, Scene scene, GameRendererRayCasting gameRendererRayCasting) {
+        this(rayCaster, pixelBuffer, imageView, map, scene, gameRendererRayCasting, null);
+    }
+
+    private void setupRenderers(GameRendererRayCasting gameRendererRayCasting, GameRendererTopDown gameRendererTopDown) {
+        this.gameRendererRayCasting = gameRendererRayCasting;
+        this.gameRendererTopDown = gameRendererTopDown;
+        if(gameRendererRayCasting != null)
+            this.currentGameRenderer = gameRendererRayCasting;
+        else this.currentGameRenderer = gameRendererTopDown;
     }
 
     private void initializeCursorAndPlayer() {
         Point mousePoint = MouseInfo.getPointerInfo().getLocation();
         cursor = new Point2D(mousePoint.getX(), mousePoint.getY());
         player = new Player(map.getPlayerStartCoords(), map);
-        AngleCalculator angleCalculator = getCurrentRenderer().getAngleCalculator();
+        AngleCalculator angleCalculator = currentGameRenderer.getAngleCalculator();
         player.setAngleCalculator(angleCalculator);
         scene.setCursor(Cursor.NONE);
     }
 
     private void setupGameLoop(Integer frameRate) {
-        this.eventHandler = actionEvent -> {
-            double startTime = System.currentTimeMillis();
+        if(currentGameRenderer instanceof GameRendererRayCasting) {
+            this.eventHandler = actionEvent -> {
+                long start = System.currentTimeMillis();
+                int[] pixels = pixelBuffer.getBuffer().array();
+                map.setCurrentPlayerDirAndUpdateCameraPlane(player.updateAngleVector(cursor));
+                map.setCurrentPlayerCoords(player.updateCoordinates(currentKeysPressed));
+                rayResults = rayCaster.run();
+                drawUsingRayCastRenderer(pixels);
+                pixelBuffer.updateBuffer(b -> null);
+                imageView.setImage(image);
+//                long frameTime = System.currentTimeMillis() - start;
+                System.out.println("Frame rendered in " + (System.currentTimeMillis() - start) + " ms");
+            };
+        }
+        else {
+            this.eventHandler = actionEvent -> {
+                double startTime = System.currentTimeMillis();
 //            map.setCurrentPlayerAngle(player.updateAngle(cursor));
-            map.setCurrentPlayerDir(player.updateAngleVector(cursor));
-            map.setCurrentPlayerCoords(player.updateCoordinates(currentKeysPressed));
-            drawUsingCurrentRenderer();
-//            System.out.println("Frame rendered in : " + (System.currentTimeMillis() - startTime) + " milliseconds");
-//            System.out.println("angle calc time: " + angleCalcTime + ", player move time: " + playerMoveTime + ", render time: " + renderTime + ", total frame rendered in : " + (angleCalcTime + playerMoveTime + renderTime) + " milliseconds");
-        };
+                map.setCurrentPlayerDirAndUpdateCameraPlane(player.updateAngleVector(cursor));
+                map.setCurrentPlayerCoords(player.updateCoordinates(currentKeysPressed));
+                drawUsingTopDownRenderer();
+            };
+        }
         this.keyFrame = new KeyFrame(Duration.millis(1000/ frameRate), eventHandler);
         gameLoop = new Timeline(keyFrame);
         gameLoop.setCycleCount(Timeline.INDEFINITE);
-        setupInputListeners();
     }
 
-    private GameRenderer getCurrentRenderer() {
-        return availableRenderers[currentRendererIndex];
+    private void drawUsingRayCastRenderer(int[] pixels) {
+        this.gameRendererRayCasting.drawAll(rayResults, pixels, currentKeysPressed, player, map, cursor);
     }
 
-    private void drawUsingCurrentRenderer() {
-        getCurrentRenderer().drawAll(currentKeysPressed, player, map, cursor);
+    private void drawUsingTopDownRenderer() {
+        this.gameRendererTopDown.drawAll(null, null, currentKeysPressed, player, map, cursor);
     }
 
     private void setupInputListeners() {
@@ -109,6 +156,22 @@ public class Game {
 
     public void run() {
         gameLoop.play();
+    }
+
+    public void runWithoutTimeLine(Stage stage) {
+        while (true) {
+            long start = System.currentTimeMillis();
+            int[] pixels = pixelBuffer.getBuffer().array();
+            map.setCurrentPlayerDirAndUpdateCameraPlane(player.updateAngleVector(cursor));
+            map.setCurrentPlayerCoords(player.updateCoordinates(currentKeysPressed));
+            rayResults = rayCaster.run();
+            drawUsingRayCastRenderer(pixels);
+            pixelBuffer.updateBuffer(b -> null);
+            imageView.setImage(image);
+            stage.setScene(scene);
+            stage.show();
+            System.out.println("Frame rendered in " + (System.currentTimeMillis() - start) + " ms");
+        }
     }
 
     private void switchRenderer(int index) {

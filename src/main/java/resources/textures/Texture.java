@@ -1,15 +1,10 @@
 package resources.textures;
-
 import exceptions.TextureLoadingException;
-import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
 import renderers.utilities.ImageLoader;
 import settings.Settings;
+import java.awt.image.BufferedImage;
 
-import java.util.stream.IntStream;
-
-import static renderers.utilities.ImageLoader.colorToARGB;
-import static renderers.utilities.ImageLoader.loadImage;
+import static renderers.utilities.ColorUtilities.colorToARGB;
 
 public class Texture {
 
@@ -19,7 +14,7 @@ public class Texture {
 
     private boolean imageLoaded;
 
-    private Image image;
+    private BufferedImage image;
     private int[][] colors;
     private int size;
 
@@ -33,12 +28,13 @@ public class Texture {
 
     public boolean loadImage() {
         try {
-            this.image = ImageLoader.loadImage(this.path);
+            this.image = ImageLoader.loadImage(path);
+            this.image = ImageLoader.resizeImage(image, size, size);
             fillColorMap();
             this.imageLoaded = true;
-            System.out.println("Image on path: " + path + " loaded succesfully");
         } catch (Exception e) {
             System.out.println("Error loading image on path: " + path);
+            e.printStackTrace();
             fillColorMapDefaultColor();
             this.imageLoaded = false;
             throw new TextureLoadingException(e);
@@ -55,10 +51,9 @@ public class Texture {
     }
 
     private void fillColorMap() {
-        PixelReader reader = image.getPixelReader();
         for(int x = 0; x < size; x++)
             for(int y = 0; y < size; y++)
-                colors[x][y] = reader.getArgb(x, y);
+                colors[x][y] = image.getRGB(x, y);
     }
 
     public String getId() {

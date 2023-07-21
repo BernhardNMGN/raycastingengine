@@ -18,6 +18,9 @@ public class TextureMap {
     private final String DEFAULT_KEY = "default_texture_id";
     private String path;
 
+    /**
+     * Stores all Textures by their ID
+     */
     private Map<String, Texture> textures;
 
     public TextureMap(String xmlPath) {

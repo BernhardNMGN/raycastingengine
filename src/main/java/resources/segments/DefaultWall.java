@@ -4,15 +4,16 @@ import javafx.scene.paint.Color;
 import resources.Direction;
 import settings.Settings;
 
-public class DefaultWall extends Segment implements Wall{
+public class DefaultWall extends Wall{
 
     public DefaultWall(double segmentSize, double x, double y) {
         super(segmentSize, x, y);
-        this.textureId = Settings.DEFAULT_WALL_TEXTURE_ID;
+        this.wallTextureId = Settings.DEFAULT_WALL_TEXTURE_ID;
     }
 
     public DefaultWall(double segmentSize) {
         super(segmentSize);
+        this.wallTextureId = Settings.DEFAULT_WALL_TEXTURE_ID;
     }
 
     @Override

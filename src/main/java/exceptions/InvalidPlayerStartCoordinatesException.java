@@ -1,4 +1,4 @@
-package resources.map;
+package exceptions;
 
 public class InvalidPlayerStartCoordinatesException extends Exception{
 

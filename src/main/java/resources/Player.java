@@ -26,12 +26,12 @@ public class Player {
     private Color primaryPlayerColor;
 
     private GameMap map;
-    private List<BoundingBox> walls;
-    private List<List<Boolean>> wallList;
     private double segmentSize;
 
     private final double screenCenterX;
     private final double screenCenterY;
+
+    private int[][] wallArray;
 
     private AngleCalculator angleCalculator;
     private RayCaster rayCaster;
@@ -51,63 +51,41 @@ public class Player {
         this.screenCenterX = Settings.HORIZONTAL_RESOLUTION/2.;
         this.screenCenterY = Settings.VERTICAL_RESOLUTION/2.;
         this.rayCaster = new RayCaster(map);
-        extractWallSegments();
+        initializeWallArray();
     }
 
-    private void extractWallSegments() {
-        walls = map.streamSegments()
-                    .filter(seg -> seg instanceof Wall)
-                    .map(wall -> {
-                        double x = wall.getStartCoords().getX();
-                        double y = wall.getStartCoords().getY();
-                        return new BoundingBox(x, y, segmentSize, segmentSize);
-                    }).toList();
-
-        wallList = map.getMap().stream()
-                .map(l ->
-                    l.stream()
-                    .map(seg -> seg instanceof Wall)
-                    .toList())
-                .toList();
+    private void initializeWallArray() {
+        int sizeX = map.getMap().get(0).size();
+        int sizeY = map.getMap().size();
+        this.wallArray = new int[sizeX][sizeY];
+        for(int x = 0; x < sizeX; x++)
+            for (int y = 0; y < sizeY; y++) {
+                Segment seg = map.getMap().get(y).get(x);
+                wallArray[x][y] = seg instanceof Wall ? 1 : 0;
+            }
     }
 
     private void movePlayer(double dX, double dY) {
-        Point2D newCoords = playerCoords.add(dX, dY);
-//        if(findCollisionPoint(newCoords, dX, dY) != null)
-        if(detectCollision(newCoords))
-            bumpPlayer(dX, dY);
-        else playerCoords = newCoords;
+        double pX = playerCoords.getX();
+        double pY = playerCoords.getY();
+        if(dX != pX) {
+            if(!detectCollision(pX + dX, pY))
+                playerCoords = playerCoords.add(dX, 0.);
+        }
+        if(dY != pY) {
+           if(!detectCollision(pX, pY + dY))
+               playerCoords = playerCoords.add(0., dY);
+        }
     }
 
-    private void bumpPlayer(double dX, double dY) {
-        movePlayer(-1 * dX, -1 * dY);
-    }
-
-    private boolean detectCollision(Point2D coords) {
-        Circle playerBox = new Circle(coords.getX(), coords.getY(), playerSize/2.);
-        return walls.stream()
-                .anyMatch(rect -> playerCollidesWithSegment(rect, playerBox));
-    }
-
-    private Point2D findCollisionPoint(Point2D coords, double dX, double dY) {
-        Circle playerBox = new Circle(coords.getX(), coords.getY(), playerSize/2.);
-        int playerIndexX = (int) (playerCoords.getX() / segmentSize);
-        int playerIndexY = (int) (playerCoords.getY() / segmentSize);
-        int newPlayerIndexX = (int) (coords.getX() / segmentSize);
-        int newPlayerIndexY = (int) (coords.getY() / segmentSize);
-        Segment playerSeg = map.getMap().get(playerIndexY).get(playerIndexX);
-
-        for(int i = -1; i <= 1; i++)
-            for(int j = -1; j <= 1; j++) {
-                if(wallList.get(playerIndexY + j).get(playerIndexX + i)) {
-
-                }
+    private boolean detectCollision(double x, double y) {
+        Circle playerRange = new Circle(x, y, playerSize/2.);
+        for(int i = (int) x - 1; i <= (int) x + 1; i++)
+            for(int j = (int) y - 1; j <= (int) y + 1; j++) {
+                if (wallArray[i][j] > 0 && playerRange.intersects(new BoundingBox(i,j,segmentSize,segmentSize)))
+                    return true;
             }
-        return null;
-    }
-
-    private boolean playerCollidesWithSegment(BoundingBox wall, Circle playerBox) {
-        return playerBox.intersects(wall);
+        return false;
     }
 
     public Vector2D updateAngleVector(Point2D cursor) {
@@ -117,8 +95,6 @@ public class Player {
 
     public Point2D updateCoordinates(Set<KeyCode> currentKeysPressed) {
         double currentSpeed = currentKeysPressed.contains(KeyBindings.RUN) ? speed * Settings.PLAYER_RUN_FACTOR : speed;
-//        double cos = currentSpeed * cos(toRadians(angle));
-//        double sin = currentSpeed * sin(toRadians(angle));
         double cos = currentSpeed * playerDir.getX();
         double sin = currentSpeed * playerDir.getY();
         if(currentKeysPressed.contains(PlayerMovement.FORWARD.getKeyCode()))

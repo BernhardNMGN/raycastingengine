@@ -1,6 +1,5 @@
 package resources;
 
-import exceptions.TextureLoadingException;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.*;
@@ -13,13 +12,15 @@ import renderers.interfaces.*;
 import renderers.raycasting.*;
 import renderers.topdown.*;
 import resources.map.GameMap;
-import resources.textures.Texture;
+import resources.segments.*;
+import resources.segments.walls.GreyLargeBrickWall;
+import resources.textures.TextureIdBuffer;
 import resources.textures.TextureMap;
 import settings.Settings;
 
 import java.nio.IntBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 
 public class ResourceGenerator {
 
@@ -35,19 +36,25 @@ public class ResourceGenerator {
         CursorType cursorType = createDefaultCursorType();
         CursorRenderer cursorRenderer = new CursorRendererTopDown(cursorType);
         HudRenderer hudRenderer = new HudRendererGeneral(gc);
-        return new GameRendererTopDown(new MapRendererTopDown(gc, map), new PlayerRendererTopDown(gc), cursorRenderer, hudRenderer, canvas);
+        return new GameRendererTopDown(new WallRendererTopDown(gc, map), new PlayerRendererTopDown(gc), cursorRenderer, hudRenderer, canvas);
     }
 
     private static CursorType createDefaultCursorType() {
         return new CursorTypeCrossHair();
     }
 
-    public static GameRenderer generate3dRenderer(ImageView imageView, PixelBuffer<IntBuffer> pixelBuffer, GameMap map) {
+    public static GameRendererRayCasting generate3dRenderer(GameMap map) {
         RayCaster rayCaster = new RayCaster(map);
         Robot mouseMover = new Robot();
         AngleCalculatorFirstPerson angleCalculator = new AngleCalculatorFirstPerson(mouseMover);
         TextureMap textureMap = generateTextureMap();
-        return new GameRendererRayCasting(new MapRendererRayCasting(map, pixelBuffer, imageView, rayCaster, textureMap), new PlayerRendererRayCasting(), new CursorRendererRayCasting(), new HudRendererRayCasting(), angleCalculator);
+        TextureIdBuffer textureIdBuffer = generateTextureIdBuffer(map);
+        return new GameRendererRayCasting(new FloorAndCeilingRendererRayCasting(map, textureMap, textureIdBuffer), //
+                new WallRendererRayCasting(map,textureMap, textureIdBuffer), //
+                new PlayerRendererRayCasting(), //
+                new CursorRendererRayCasting(), //
+                new HudRendererRayCasting(), //
+                angleCalculator);
     }
 
     private static TextureMap generateTextureMap() {
@@ -57,6 +64,22 @@ public class ResourceGenerator {
         return map;
     }
 
+    private static TextureIdBuffer generateTextureIdBuffer(GameMap map) {
+        List<List<Segment>> segments = map.getMap();
+        int horizontalMapSize = segments.get(0).size();
+        int verticalMapSize = segments.size();
+        String[][][] textureIds = new String[horizontalMapSize][verticalMapSize][3];
+        map.streamSegments().forEach(seg -> {
+            int x = (int) seg.getStartCoords().getX();
+            int y = (int) seg.getStartCoords().getY();
+            textureIds[x][y] = switch (seg) {
+                case Wall wall -> new String[]{wall.getWallTextureId(), null, null};
+                case Floor floor -> new String[]{null, floor.getFloorTextureId(), floor.getCeilingTextureId()};
+                default -> new String[]{null, null, null};
+            };
+        });
+        return new TextureIdBuffer(textureIds);
+    }
 
     /**
      * This is more dynamic (because we can declare default class in Settings), but method looks very

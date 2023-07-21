@@ -2,7 +2,10 @@ package renderers.topdown;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import raycasting.RayResult;
 import renderers.utilities.GraphicRendererContainer;
 import renderers.utilities.RenderType;
 import renderers.anglecalculators.AngleCalculator;
@@ -15,14 +18,14 @@ import java.util.Set;
 
 public class GameRendererTopDown implements GameRenderer {
 
-    private MapRendererTopDown mapRenderer;
+    private WallRendererTopDown mapRenderer;
     private PlayerRendererTopDown playerRenderer;
     private CursorRenderer cursorRenderer;
     private HudRenderer hudRenderer;
     private AngleCalculator angleCalculator;
     private Canvas canvas;
 
-    public GameRendererTopDown(MapRendererTopDown mapRenderer, PlayerRendererTopDown playerRenderer, CursorRenderer cursorRenderer, HudRenderer hudRenderer, Canvas canvas) {
+    public GameRendererTopDown(WallRendererTopDown mapRenderer, PlayerRendererTopDown playerRenderer, CursorRenderer cursorRenderer, HudRenderer hudRenderer, Canvas canvas) {
         this.mapRenderer = mapRenderer;
         this.playerRenderer = playerRenderer;
         this.cursorRenderer = cursorRenderer;
@@ -32,12 +35,17 @@ public class GameRendererTopDown implements GameRenderer {
     }
 
     @Override
-    public void drawAll(Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
+    public void drawAll(RayResult[] rayResults, int[] pixels, Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
 //        clearBackGround();
         mapRenderer.draw();
         playerRenderer.draw(player);
         hudRenderer.draw(player, map, cursor);
         cursorRenderer.draw(cursor);
+    }
+
+    @Override
+    public void drawAll(RayResult[] rayResults, int[] pixels, Image image, Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
+
     }
 
     @Override

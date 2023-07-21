@@ -23,7 +23,7 @@ public class RayCaster {
         double posX = map.getCurrentPlayerCoords().getX();
         double posY = map.getCurrentPlayerCoords().getY();
         Vector2D dir = map.getCurrentPlayerDir();
-        Vector2D plane = dir.orthogonal().multiply(Math.tan(Settings.PLAYER_FOV/2.));
+        Vector2D plane = map.getCameraPlane();
         int nrOfRays = (int) (Settings.HORIZONTAL_RESOLUTION * Settings.IMAGE_QUALITY.getScalingFactor());
         RayResult[] rayResults = new RayResult[nrOfRays];
         for(int x = 0; x < nrOfRays; x++) {
@@ -55,10 +55,10 @@ public class RayCaster {
         }
         //todo: fix!!!
         double distance = sideDistances[i] - deltaDistances[i];
-//        Direction wallSide = computeWallDirection(i, rayDirX, rayDirY);
         double wallX = computeWallXCoordinate(i, posX, posY, distance, rayDirX, rayDirY); //relative x-coordinate of where the wall was hit
+        double[] floorSegmentStart = computeWallDirection(i, rayDirX, rayDirY, wallX, mapCoords);
         int textureX = computeTextureXIndex(i, wallX, distance, rayDirX, rayDirY); //wallX scaled & transformed to get x-coordinate for texture
-        return new RayResult(distance, nextSeg, textureX);
+        return new RayResult(distance, (Wall) nextSeg, textureX, floorSegmentStart);
     }
 
     private int computeTextureXIndex(int side, double wallX, double distance, double rayDirX, double rayDirY) {
@@ -69,10 +69,19 @@ public class RayCaster {
         return texX;
     }
 
-    private Direction computeWallDirection(int i, double rayDirX, double rayDirY) {
-        Axis axis = Axis.values()[i];
-        if(axis.equals(Axis.HORIZONTAL)) return rayDirX > 0 ? Direction.LEFT : Direction.RIGHT;
-        else return rayDirY < 0 ? Direction.UP : Direction.DOWN;
+    private double[] computeWallDirection(int i, double rayDirX, double rayDirY, double wallX, int[] mapCoords) {
+        double[] floorSegmentStart = new double[]{(double) mapCoords[0], (double) mapCoords[1]};
+        if(i == 0) {
+            floorSegmentStart[1] += wallX;
+            if(rayDirX < 0)
+                floorSegmentStart[0] += 1.;
+        }
+        else {
+            floorSegmentStart[0] += wallX;
+            if(rayDirY < 0)
+                floorSegmentStart[1] += 1.;
+        }
+        return floorSegmentStart;
     }
 
     private double computeWallXCoordinate(int side, double posX, double posY, double distance, double rayDirX, double rayDirY) {

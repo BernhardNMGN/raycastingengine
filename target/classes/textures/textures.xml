@@ -24,4 +24,12 @@
         <id>default_floor</id>
         <path>/textures/default/default_floor.png</path>
     </texture>
+    <texture>
+        <id>ceiling_grey_plaster</id>
+        <path>/textures/ceiling/ceiling_grey_plaster.png</path>
+    </texture>
+    <texture>
+        <id>default_ceiling</id>
+        <path>/textures/default/default_ceiling.png</path>
+    </texture>
 </textures>

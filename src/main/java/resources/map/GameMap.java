@@ -3,6 +3,8 @@ package resources.map;
 import javafx.geometry.Point2D;
 import org.apache.commons.geometry.euclidean.twod.Vector2D;
 import resources.segments.Segment;
+import settings.Settings;
+
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -15,6 +17,8 @@ public class GameMap {
     private Point2D currentPlayerCoords;
     private Vector2D currentPlayerDir;
 
+    private Vector2D cameraPlane;
+
     private MapAssets assets;
 
     public GameMap(List<List<Character>> mapArray, double segmentSize, List<List<Segment>> map, Point2D playerStartCoords) {
@@ -24,10 +28,6 @@ public class GameMap {
         this.playerStartCoords = playerStartCoords;
         this.assets = new MapAssets();
 
-    }
-
-    public List<List<Character>> getMapArray() {
-        return mapArray;
     }
 
     public List<List<Segment>> getMap() {
@@ -54,15 +54,16 @@ public class GameMap {
         return currentPlayerDir;
     }
 
-    public void setCurrentPlayerDir(Vector2D currentPlayerDir) {
+    public void setCurrentPlayerDirAndUpdateCameraPlane(Vector2D currentPlayerDir) {
         this.currentPlayerDir = currentPlayerDir;
-    }
-
-    public MapAssets getAssets() {
-        return assets;
+        this.cameraPlane = currentPlayerDir.orthogonal().multiply(Math.tan(Settings.PLAYER_FOV/2.));
     }
 
     public Stream<Segment> streamSegments() {
         return map.stream().flatMap(l -> l.stream());
+    }
+
+    public Vector2D getCameraPlane() {
+        return this.cameraPlane;
     }
 }

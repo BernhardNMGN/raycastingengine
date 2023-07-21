@@ -44,6 +44,7 @@ public class GeometryCalculator {
         return result;
     }
 
+    /*
     public static Direction calculateSideOfImpact(RayResult rayResult) {
         double entX = rayResult.getEntrancePoint().getX();
         double entY = rayResult.getEntrancePoint().getY();
@@ -60,6 +61,7 @@ public class GeometryCalculator {
         }
         else return Direction.DOWN;
     }
+     */
 
     public static Point2D angleToVector(Point2D source, double angle) {
         return null;

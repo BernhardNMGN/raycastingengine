@@ -2,15 +2,16 @@ package renderers.topdown;
 
 import javafx.geometry.BoundingBox;
 import javafx.scene.canvas.GraphicsContext;
+import raycasting.RayResult;
 import renderers.utilities.RenderType;
-import renderers.interfaces.MapRenderer;
+import renderers.interfaces.WallRenderer;
 import resources.map.GameMap;
 import resources.segments.Segment;
 import settings.Settings;
 
 import java.util.List;
 
-public class MapRendererTopDown implements MapRenderer {
+public class WallRendererTopDown implements WallRenderer {
 
     private final GameMap map;
     private double segmentSize;
@@ -24,7 +25,7 @@ public class MapRendererTopDown implements MapRenderer {
     private GraphicsContext gc;
 
 
-    public MapRendererTopDown(GraphicsContext gc, GameMap map) {
+    public WallRendererTopDown(GraphicsContext gc, GameMap map) {
         this.gc = gc;
         this.map = map;
         this.segmentSize = map.getSegmentSize();
@@ -47,6 +48,16 @@ public class MapRendererTopDown implements MapRenderer {
                             double y = seg.getStartCoords().getY() - yDiff;
                             seg.draw(gc, x, y);})
         );
+    }
+
+    @Override
+    public void draw(int[] pixels) {
+
+    }
+
+    @Override
+    public void draw(RayResult[] rayResults, int[] pixels) {
+
     }
 
     @Override

@@ -1,6 +1,7 @@
 package application;
 
 import game.Game;
+import game.GameLoop;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.geometry.Rectangle2D;
@@ -15,7 +16,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import raycasting.RayCaster;
 import renderers.interfaces.*;
+import renderers.raycasting.GameRendererRayCasting;
+import renderers.topdown.GameRendererTopDown;
 import resources.ResourceGenerator;
 import resources.map.GameMap;
 import resources.map.MapBuilder;
@@ -67,21 +71,23 @@ public class RayCastingEngineApplication extends Application {
             }
         });
 
-//        GraphicRendererContainer grContainer = new GraphicRendererContainer(scene, canvas.getGraphicsContext2D(), pixelBuffer, imageView);
-
         MapBuilder mapBuilder = new MapBuilder();
         GameMap map = mapBuilder.buildFromFile("defaultMap");
 
-        GameRenderer rendererTopDown = ResourceGenerator.generate2dRendererTopDown(canvas, map);
-        GameRenderer renderer3D = ResourceGenerator.generate3dRenderer(imageView, pixelBuffer, map);
+        GameRendererTopDown rendererTopDown = ResourceGenerator.generate2dRendererTopDown(canvas, map);
+        GameRendererRayCasting renderer3D = ResourceGenerator.generate3dRenderer(map);
+        RayCaster rayCaster = new RayCaster(map);
 
         if(testMode) {
 //            testMethod(pixelBuffer);
         }
         else {
-            Game game = new Game(map, scene, renderer3D);
+//            Game game = new Game(rayCaster, pixelBuffer, imageView, map, scene, renderer3D);
+            GameLoop gameLoop = new GameLoop(rayCaster, pixelBuffer, imageView, map, scene, renderer3D, rendererTopDown);
             stage.show();
-            game.run();
+            gameLoop.start();
+//            game.run();
+//            game.runWithoutTimeLine(stage); //not working
         }
 
     }

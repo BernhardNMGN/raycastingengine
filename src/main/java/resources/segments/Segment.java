@@ -15,7 +15,6 @@ public abstract class Segment {
     private double segmentSize;
     private BoundingBox outerBoundingBox;
     private BoundingBox innerBoundingBox;
-    protected String textureId;
 
     protected int[][] textureArray;
     protected Color[] textureArrayColors;
@@ -28,11 +27,11 @@ public abstract class Segment {
         setDefaultColors();
         this.lineThickness = segmentSize/20.;
     }
-    protected Segment(double segmentSize, double x, double y, String textureId) {
-        this(segmentSize, x, y);
-        this.textureId = textureId;
-    }
 
+    /**
+     * Only used for top-down perspective
+     * @param segmentSize
+     */
     protected Segment(double segmentSize) {
         this.segmentSize = segmentSize;
     }
@@ -84,9 +83,5 @@ public abstract class Segment {
 
     public Color[] getTextureArrayColors() {
         return textureArrayColors;
-    }
-
-    public String getTextureId() {
-        return textureId;
     }
 }

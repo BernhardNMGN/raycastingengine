@@ -1,9 +1,13 @@
 package renderers.raycasting;
 
 import javafx.geometry.Point2D;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import raycasting.RayResult;
 import renderers.anglecalculators.AngleCalculatorFirstPerson;
 import renderers.interfaces.CursorRenderer;
+import renderers.interfaces.FloorAndCeilingRenderer;
 import renderers.interfaces.HudRenderer;
 import renderers.utilities.RenderType;
 import renderers.anglecalculators.AngleCalculator;
@@ -15,14 +19,16 @@ import java.util.Set;
 
 public class GameRendererRayCasting implements GameRenderer {
 
-    private MapRendererRayCasting mapRenderer;
+    private FloorAndCeilingRenderer floorAndCeilingRenderer;
+    private WallRendererRayCasting wallRenderer;
     private PlayerRendererRayCasting playerRenderer;
     private CursorRenderer cursorRenderer;
     private HudRenderer hudRenderer;
     private AngleCalculator angleCalculator;
 
-    public GameRendererRayCasting(MapRendererRayCasting mapRenderer, PlayerRendererRayCasting playerRenderer, CursorRenderer cursorRenderer, HudRenderer hudRenderer, AngleCalculatorFirstPerson angleCalculator) {
-        this.mapRenderer = mapRenderer;
+    public GameRendererRayCasting(FloorAndCeilingRendererRayCasting floorAndCeilingRenderer, WallRendererRayCasting wallRenderer, PlayerRendererRayCasting playerRenderer, CursorRenderer cursorRenderer, HudRenderer hudRenderer, AngleCalculatorFirstPerson angleCalculator) {
+        this.floorAndCeilingRenderer = floorAndCeilingRenderer;
+        this.wallRenderer = wallRenderer;
         this.playerRenderer = playerRenderer;
         this.cursorRenderer = cursorRenderer;
         this.hudRenderer = hudRenderer;
@@ -30,9 +36,17 @@ public class GameRendererRayCasting implements GameRenderer {
     }
 
     @Override
-    public void drawAll(Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
-//        clearBackGround(grContainer);
-        mapRenderer.draw();
+    public void drawAll(RayResult[] rayResults, int[] pixels, Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
+        wallRenderer.draw(rayResults, pixels);
+        playerRenderer.draw(player);
+        cursorRenderer.draw(cursor);
+        hudRenderer.draw(player, map, cursor);
+    }
+
+    @Override
+    public void drawAll(RayResult[] rayResults, int[] pixels, Image image, Set<KeyCode> keysPressed, Player player, GameMap map, Point2D cursor) {
+//        floorAndCeilingRenderer.draw(rayResults, pixels);
+        wallRenderer.draw(rayResults, pixels);
         playerRenderer.draw(player);
         cursorRenderer.draw(cursor);
         hudRenderer.draw(player, map, cursor);
@@ -46,11 +60,5 @@ public class GameRendererRayCasting implements GameRenderer {
     @Override
     public AngleCalculator getAngleCalculator() {
         return angleCalculator;
-    }
-
-    private void clearBackGround() {
-//        GraphicsContext gc = grContainer.getGraphicsContext();
-//        gc.setFill(Color.BLACK);
-//        gc.fillRect(0, 0, Settings.HORIZONTAL_RESOLUTION, Settings.VERTICAL_RESOLUTION);
     }
 }
